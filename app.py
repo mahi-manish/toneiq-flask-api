@@ -386,72 +386,80 @@ def home():
 
 @app.route("/api/analyze/text", methods=["GET", "POST"])
 def analyze_text():
-    if request.method == "POST":
-        data = request.get_json() or {}
-        sentence = data.get("text", "Great another useless feature added")
-    else:
-        sentence = request.args.get("text", "Great another useless feature added")
-        
-    if not sentence or not sentence.strip():
-        return jsonify({"error": "Provide text"}), 400
+    try:
+        if request.method == "POST":
+            data = request.get_json() or {}
+            sentence = data.get("text", "Great another useless feature added")
+        else:
+            sentence = request.args.get("text", "Great another useless feature added")
+            
+        if not sentence or not sentence.strip():
+            return jsonify({"error": "Provide text"}), 400
 
-    aspects = extract_aspects(sentence)
-    results = {}
+        aspects = extract_aspects(sentence)
+        results = {}
 
-    # ALWAYS include Overall Sentiment Summary
-    overall_res = analyze_sentiment_hybrid(sentence)
-    results["Overall Summary"] = {
-        "context": sentence,
-        "sentiment": overall_res["display_sentiment"],
-        "tone": overall_res["tone"],
-        "is_sarcastic": overall_res["sarcasm"],
-        "cues": overall_res["cues"],
-        "confidence": f"{overall_res['confidence']:.2%}" if isinstance(overall_res["confidence"], float) else overall_res["confidence"]
-    }
+        # ALWAYS include Overall Sentiment Summary
+        overall_res = analyze_sentiment_hybrid(sentence)
+        results["Overall Summary"] = {
+            "context": sentence,
+            "sentiment": overall_res["display_sentiment"],
+            "tone": overall_res["tone"],
+            "is_sarcastic": overall_res["sarcasm"],
+            "cues": overall_res["cues"],
+            "confidence": f"{overall_res['confidence']:.2%}" if isinstance(overall_res["confidence"], float) else overall_res["confidence"]
+        }
 
-    # Integrate User-Requested Aspect Sarcasm Logic
-    text_lower = sentence.lower()
-    for asp in CORE_ASPECT_KEYWORDS:
-        if asp in text_lower:
-            # If the overall sentence is sarcastic, flag this specific core aspect
-            if overall_res["sarcasm"]:
-                results[f"Core Aspect: {asp.capitalize()}"] = {
-                    "context": f"Found '{asp}' in sarcastic context",
-                    "sentiment": "Negative 😡 (Sarcastic 😏)",
-                    "opinion_words": "detected via sarcastic tone",
-                    "tone": "sarcastic",
-                    "is_sarcastic": True,
-                    "confidence": "90% (Pattern Match)"
+        # Integrate User-Requested Aspect Sarcasm Logic
+        text_lower = sentence.lower()
+        for asp in CORE_ASPECT_KEYWORDS:
+            if asp in text_lower:
+                # If the overall sentence is sarcastic, flag this specific core aspect
+                if overall_res["sarcasm"]:
+                    results[f"Core Aspect: {asp.capitalize()}"] = {
+                        "context": f"Found '{asp}' in sarcastic context",
+                        "sentiment": "Negative 😡 (Sarcastic 😏)",
+                        "opinion_words": "detected via sarcastic tone",
+                        "tone": "sarcastic",
+                        "is_sarcastic": True,
+                        "confidence": "90% (Pattern Match)"
+                    }
+                elif asp not in aspects: # Add it if it wasn't caught by NLTK but exists in our core list
+                    aspects.append(asp)
+
+        # Add aspect-level analysis
+        if aspects:
+            # Common non-aspect nouns to filter out
+            noise_words = ["something", "anything", "everything", "someone", "anyone", "thing", "day", "time", "way", "lot"]
+            
+            for aspect in aspects:
+                if aspect in noise_words: continue
+                
+                context = get_context_phrase(sentence, aspect)
+                opinion = get_aspect_opinion(sentence, aspect)
+                res = analyze_sentiment_hybrid(context)
+                
+                results[aspect] = {
+                    "context": context,
+                    "sentiment": res["display_sentiment"],
+                    "opinion_words": opinion,
+                    "tone": res["tone"],
+                    "is_sarcastic": res["sarcasm"],
+                    "confidence": f"{res['confidence']:.2%}" if isinstance(res["confidence"], float) else res["confidence"]
                 }
-            elif asp not in aspects: # Add it if it wasn't caught by NLTK but exists in our core list
-                aspects.append(asp)
 
-    # Add aspect-level analysis
-    if aspects:
-        # Common non-aspect nouns to filter out
-        noise_words = ["something", "anything", "everything", "someone", "anyone", "thing", "day", "time", "way", "lot"]
-        
-        for aspect in aspects:
-            if aspect in noise_words: continue
-            
-            context = get_context_phrase(sentence, aspect)
-            opinion = get_aspect_opinion(sentence, aspect)
-            res = analyze_sentiment_hybrid(context)
-            
-            results[aspect] = {
-                "context": context,
-                "sentiment": res["display_sentiment"],
-                "opinion_words": opinion,
-                "tone": res["tone"],
-                "is_sarcastic": res["sarcasm"],
-                "confidence": f"{res['confidence']:.2%}" if isinstance(res["confidence"], float) else res["confidence"]
-            }
-
-    return jsonify({
-        "status": "success",
-        "sentence": sentence,
-        "analysis": results
-    })
+        return jsonify({
+            "status": "success",
+            "sentence": sentence,
+            "analysis": results
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "status": "error",
+            "message": str(e),
+            "traceback": traceback.format_exc()
+        }), 500
 
 import requests
 from bs4 import BeautifulSoup
