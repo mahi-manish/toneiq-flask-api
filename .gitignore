@@ -1,0 +1,12 @@
+venv/
+__pycache__/
+*.pyc
+.gemini/
+.env
+.ipynb_checkpoints/
+*.log
+# Large data files (optional - comment out if you want to upload them)
+# new tweet.csv
+# combined_dataset.csv
+# Mobile Reviews Sentiment.csv
+# Tweets.csv

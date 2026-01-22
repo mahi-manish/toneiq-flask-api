@@ -1,0 +1,10 @@
+flask
+flask-cors
+nltk
+vaderSentiment
+textblob
+beautifulsoup4
+requests
+scikit-learn
+transformers
+torch --index-url https://download.pytorch.org/whl/cpu
