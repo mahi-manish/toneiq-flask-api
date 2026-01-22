@@ -396,20 +396,40 @@ def analyze_sentiment_hybrid(text):
 
 @app.route("/")
 def home():
-    return jsonify({
-        "status": "online",
-        "message": "Sentiment Analysis API is running. Use /api/analyze/text for analysis.",
-        "endpoints": ["/api/analyze/text", "/api/analyze/url"]
-    })
+    return """
+    <html>
+        <head>
+            <title>ToneIQ API Debugger</title>
+            <style>
+                body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; line-height: 1.6; background: #f4f4f9; }
+                textarea { width: 100%; height: 100px; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; }
+                button { background: #4a90e2; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+                button:hover { background: #357abd; }
+                pre { background: #2d2d2d; color: #ccc; padding: 15px; border-radius: 4px; overflow-x: auto; }
+            </style>
+        </head>
+        <body>
+            <h1>🚀 ToneIQ API Test Page</h1>
+            <p>Type any text below to test the backend analysis:</p>
+            <form action="/api/analyze/text" method="get">
+                <textarea name="text" placeholder="Enter text here (e.g., Wow, what a great feature! Not.)"></textarea>
+                <br>
+                <button type="submit">Analyze Sentiment</button>
+            </form>
+            <hr>
+            <p><small>Endpoints: /api/analyze/text | /api/analyze/url</small></p>
+        </body>
+    </html>
+    """
 
 @app.route("/api/analyze/text", methods=["GET", "POST"])
 def analyze_text():
     try:
         if request.method == "POST":
             data = request.get_json() or {}
-            sentence = data.get("text", "Great another useless feature added")
+            sentence = data.get("text", "")
         else:
-            sentence = request.args.get("text", "Great another useless feature added")
+            sentence = request.args.get("text", "")
             
         if not sentence or not sentence.strip():
             return jsonify({"error": "Provide text"}), 400
