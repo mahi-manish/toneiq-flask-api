@@ -88,21 +88,30 @@ if os.path.exists(MODEL_PATH):
     except Exception as e:
         print(f"Model load error: {e}")
 
-# Ensure NLTK resources are available in a specific path for cloud deployment
-nltk_data_path = os.path.join(os.getcwd(), 'nltk_data')
-if not os.path.exists(nltk_data_path):
-    os.makedirs(nltk_data_path)
-nltk.data.path.append(nltk_data_path)
+# Robust NLTK Data Management for Render/Cloud
+nltk_data_dir = os.path.join(os.path.expanduser('~'), 'nltk_data')
+if not os.path.exists(nltk_data_dir):
+    os.makedirs(nltk_data_dir)
+nltk.data.path.append(nltk_data_dir)
 
-def download_nltk_resources():
-    resources = ["punkt", "stopwords", "averaged_perceptron_tagger", "wordnet", "omw-1.4"]
+def ensure_nltk_resources():
+    resources = [
+        'punkt',
+        'stopwords', 
+        'averaged_perceptron_tagger',
+        'wordnet',
+        'omw-1.4',
+        'punkt_tab',
+        'averaged_perceptron_tagger_eng'
+    ]
     for res in resources:
         try:
-            nltk.download(res, download_dir=nltk_data_path, quiet=True)
+            print(f"Ensuring NLTK resource: {res}")
+            nltk.download(res, download_dir=nltk_data_dir, quiet=True)
         except Exception as e:
-            print(f"Error downloading {res}: {e}")
+            print(f"Warning: Could not download {res}: {e}")
 
-download_nltk_resources()
+ensure_nltk_resources()
 
 # VADER for lexical sentiment analysis - ENHANCED for sarcasm
 vader_analyzer = SentimentIntensityAnalyzer()
