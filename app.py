@@ -464,8 +464,7 @@ def analyze_text():
             "is_sarcastic": overall_res["sarcasm"],
             "cues": overall_res["cues"],
             "confidence": f"{overall_res['confidence']:.2%}" if isinstance(overall_res["confidence"], float) else overall_res["confidence"],
-            "industry_score": overall_res["industry_score"],
-            "word_nlu": overall_res["word_analysis"] # Detailed word-level breakdown
+            "industry_score": overall_res["industry_score"]
         }
 
         # Integrate User-Requested Aspect Sarcasm Logic
@@ -568,8 +567,7 @@ def analyze_url():
             "tone": overall_res["tone"],
             "is_sarcastic": overall_res["sarcasm"],
             "confidence": f"{overall_res['confidence']:.2%}" if isinstance(overall_res["confidence"], float) else overall_res["confidence"],
-            "industry_score": overall_res["industry_score"],
-            "word_nlu": overall_res["word_analysis"][:15] # Top 15 words
+            "industry_score": overall_res["industry_score"]
         }
 
         # Add key aspects found in URL content
