@@ -247,7 +247,9 @@ def detect_sarcasm_expert(text, v_compound, subjectivity):
     sarcasm_triggers = [
         "wonderful", "masterpiece", "pure magic", "glorified", "smart yet",
         "busy right now", "love how", "so glad", "truly", "expert at",
-        "nice going", "great job", "yeah right", "thanks for"
+        "nice going", "great job", "yeah right", "thanks for", "fantastic",
+        "awesome", "best app ever", "perfect timing", "brilliant design",
+        "wonderful update", "excellent job", "so professional", "flawless"
     ]
 
     idiom_negatives = [

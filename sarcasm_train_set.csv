@@ -1,0 +1,51 @@
+text,sentiment,sarcasm
+"Yeah right, this app is totally perfect.",negative,1
+"Wow, another update that broke everything.",negative,1
+"I just love how this app crashes every five minutes.",negative,1
+"Great job, nothing works anymore.",negative,1
+"Amazing customer service, they never reply.",negative,1
+"Oh nice, the button doesn’t work again.",negative,1
+"Fantastic, my data is gone.",negative,1
+"Love waiting ten minutes for a page to load.",negative,1
+"Best app ever… if you enjoy bugs.",negative,1
+"Brilliant design, completely unusable.,negative,1"
+"Yeah sure, this is exactly what I wanted.",negative,1
+"Awesome, another error message.",negative,1
+"Great, the app froze again.",negative,1
+"Love how smooth this laggy app is.",negative,1
+"Perfect timing, the server is down again.",negative,1
+"Wonderful update, now nothing opens.",negative,1
+"Nice, my payment failed again.",negative,1
+"Love this amazing loading screen.",negative,1
+"Excellent job deleting my progress.",negative,1
+"Wow, what a fast response time.",negative,1
+"Totally reliable, it crashes daily.",negative,1
+"Best feature is that nothing works.",negative,1
+"Great UI, shame it doesn’t function.",negative,1
+"Love being logged out every hour.",negative,1
+"Fantastic performance, two FPS.",negative,1
+"Amazing, my order got cancelled again.",negative,1
+"Just perfect, the app won’t open.",negative,1
+"Nice update, ruined everything.",negative,1
+"Awesome support, no one answers.",negative,1
+"Great experience, totally wasted my time.,negative,1"
+"Love this super buggy masterpiece.",negative,1
+"Perfect app, can’t even sign in.",negative,1
+"Wonderful, another crash.",negative,1
+"So professional, lost my data.",negative,1
+"Fantastic, the feature is missing.",negative,1
+"Love how secure this app is, it logged me out.",negative,1
+"Great job, my account is locked.",negative,1
+"Amazing UX, totally confusing.",negative,1
+"Love this flawless broken app.",negative,1
+"Awesome, the server timed out.",negative,1
+"Perfect, nothing loads.",negative,1
+"Wonderful service, very slow.",negative,1
+"Love these beautiful error screens.",negative,1
+"Fantastic, my settings reset.",negative,1
+"Great app, eats my battery.",negative,1
+"Love this update, full of bugs.",negative,1
+"Amazing, my cart is empty again.",negative,1
+"Perfect design, unusable.",negative,1
+"Nice app, crashes on login.",negative,1
+"Best experience ever, not.",negative,1
