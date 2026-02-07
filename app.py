@@ -23,6 +23,7 @@ def extract_aspects(sentence):
         tagged = nltk.pos_tag(tokens)
         aspects = []
         current_aspect = []
+        
         for word, pos in tagged:
             # Check for noun tags
             if pos in ["NN", "NNS", "NNP", "NNPS"]:
@@ -48,48 +49,34 @@ def extract_aspects(sentence):
 
 # Load Deep Learning tools safely (handles broken torch DLLs on some Windows systems)
 # NOTE: RoBERTa models require ~1GB RAM. On Render Free Tier (512MB), we skip them to avoid crash.
-# Professional AI Intelligence Initializer
 IS_LOW_MEM = os.environ.get("LOW_MEMORY_MODE", "false").lower() == "true"
 
 bert_analyzer = None
 sarcasm_analyzer = None
 
-# Using State-of-the-Art (SOTA) Models
-# NOTE: Latest RoBERTa models are significantly more accurate for social media/conversational text
-SENTIMENT_MODEL = "cardiffnlp/twitter-roberta-base-sentiment-latest"
-SARCASM_MODEL = "cardiffnlp/twitter-roberta-base-sarcasm"
-
 if not IS_LOW_MEM:
     try:
         from transformers import pipeline as hf_pipeline
-        print(f"Loading SOTA AI Models: {SENTIMENT_MODEL}...")
+        print("Transformers library loaded.")
         
-        # We use a 'sentiment-analysis' pipeline with a 512-token truncation for safety
-        bert_analyzer = hf_pipeline(
-            "sentiment-analysis", 
-            model=SENTIMENT_MODEL, 
-            tokenizer=SENTIMENT_MODEL, 
-            device=-1, # Force CPU for stability on free servers
-            max_length=512, 
-            truncation=True
-        )
+        print("Initializing Dual RoBERTa Intelligence (Sentiment + Sarcasm)...")
+        # 1. Sentiment Model
+        SENTIMENT_MODEL = "cardiffnlp/twitter-roberta-base-sentiment"
+        bert_analyzer = hf_pipeline("sentiment-analysis", model=SENTIMENT_MODEL, tokenizer=SENTIMENT_MODEL, device=-1) # Force CPU
         
-        sarcasm_analyzer = hf_pipeline(
-            "sentiment-analysis", 
-            model=SARCASM_MODEL, 
-            tokenizer=SARCASM_MODEL, 
-            device=-1,
-            max_length=512, 
-            truncation=True
-        )
+        # 2. Sarcasm Detection Model
+        SARCASM_MODEL = "cardiffnlp/twitter-roberta-base-sarcasm"
+        sarcasm_analyzer = hf_pipeline("sentiment-analysis", model=SARCASM_MODEL, tokenizer=SARCASM_MODEL, device=-1) # Force CPU
         
-        print("Market-Standard Intelligence systems initialized.")
+        print("Dual RoBERTa Models ready for deployment.")
     except Exception as e:
-        print(f"AI Model fallback (Memory/Library Issues): {e}")
+        print(f"Deep Learning load error or memory limit: {e}")
         bert_analyzer = None
         sarcasm_analyzer = None
 else:
-    print("LOW_MEMORY_MODE active. Rule-based Expert System (VADER+NLU) will lead.")
+    print("LOW_MEMORY_MODE active. Skipping RoBERTa models to prevent crash.")
+    bert_analyzer = None
+    sarcasm_analyzer = None
 
 # Load our high-performance ML pipeline (Logistic Regression)
 MODEL_PATH = "sentiment_pipeline.pkl"
@@ -131,23 +118,19 @@ vader_analyzer = SentimentIntensityAnalyzer()
 
 # CUSTOM VADER LEXICON: Upgrade with sarcastic, Hinglish, and backhanded triggers
 vader_analyzer.lexicon.update({
-    # Sarcastic/Ironic Slang (only if strongly indicative)
-    'lipstick_on_a_pig': -2.5,
-    'yeah_right': -2.0,
+    # Sarcastic Slang
+    'wow': -0.8, 'great': -0.4, 'sure': -1.2, 'impressive': -0.8, 'magic': -1.0,
+    'expected': -1.8, 'standard': -1.2, 'typical': -1.0, 'classic': -0.8,
     
-    # Hinglish & Cultural Sarcasm (Keep actually negative ones)
-    'ghanta': -2.5, 'bakwas': -2.0, 'bekaar': -2.0, 'kachra': -2.2,
-    'loot': -2.5, 'dhoka': -2.5, 'paisa_barbad': -2.5, 'dimag_kharab': -2.0,
+    # Hinglish & Cultural Sarcasm
+    'zabardast': -1.5, 'kamaal': -1.5, 'wah': -2.0, 'shabash': -1.8, 'gajab': -1.5,
+    'dhanyawad': -1.2, 'shukriya': -1.2, 'mubarak': -1.0, 'bhala': -1.0, 'lajawab': -1.0,
+    'paisa_vasool': 2.0, 'ghanta': -2.5, 'bakwas': -2.0, 'bekaar': -2.0, 'kachra': -2.2,
+    'loot': -2.5, 'dhoka': -2.5, 'fadu': 2.5, 'mast': 2.0, 'solid': 1.5, 'killer': 1.8,
     
-    # Contextual Triggers (Actual negatives)
+    # Contextual Triggers
     'paperweight': -3.0, 'brick': -2.5, 'heater': -2.0, 'garbage': -2.5, 'trash': -2.5,
-    'disaster': -3.0, 'joke': -2.2, 'useless': -2.5, 'broken': -2.0, 'slow': -1.5,
-    
-    # Positive Hinglish (Increasing weights to overcome VADER normalization)
-    'paisa_vasool': 4.0, 'fadu': 4.0, 'mast': 3.5, 'solid': 3.0, 'killer': 3.5,
-    'zabardast': 4.0, 'kamaal': 4.0, 'wah': 3.0, 'shabash': 3.0, 'gajab': 4.0,
-    'dhanyawad': 3.0, 'shukriya': 3.0, 'mubarak': 3.0, 'lajawab': 4.0,
-    'worth_it': 4.0, 'had_fun': 3.5
+    'disaster': -3.0, 'joke': -2.2, 'useless': -2.5, 'broken': -2.0, 'slow': -1.5
 })
 
 def get_word_sentiment(word):
@@ -261,11 +244,12 @@ def detect_sarcasm_expert(text, v_compound, subjectivity):
     tone = "sincere"
     
     # 1. Advanced Pattern Matchers
-    # These are phrases that are ALMOST ALWAYS sarcastic or ironic
     sarcasm_triggers = [
-        "yeah right", "lipstick on a pig", "glorified", "nice going", 
-        "masterpiece (not)", "best app ever (sarcastic)", "good luck with that",
-        "thanks for nothing", "keep it up", "nice one"
+        "wonderful", "masterpiece", "pure magic", "glorified", "smart yet",
+        "busy right now", "love how", "so glad", "truly", "expert at",
+        "nice going", "great job", "yeah right", "thanks for", "fantastic",
+        "awesome", "best app ever", "perfect timing", "brilliant design",
+        "wonderful update", "excellent job", "so professional", "flawless"
     ]
 
     idiom_negatives = [
@@ -273,26 +257,16 @@ def detect_sarcasm_expert(text, v_compound, subjectivity):
         "head on a wall", "paperweight", "zero", "broken", "useless"
     ]
 
-    # Added more Hinglish sarcasm cues
     hinglish_sarcasm = [
+        "wah bhai", "kya baat hai", "zabardast", "gajab", "maza aa gaya", 
+        "great hai bhai", "kamaal", "bahut achha", "aisi hai ki", "itna clear", 
+        "heater ban gaya", "mubarak ho", "shabash", "waah", "bhala ho", 
+        "mehenga", "kya dimaag", "use kyun nahi", "dhanyawad", "shukriya",
         "ghanta", "loot liya", "loot raha hai", "majak horha hai", "mazak hai",
-        "paisa barbad", "dimag kharab", "bakwas software", "bekaar update",
-        "heater ban gaya", "wah kya baat hai", "kya baat hai", "waah bhai",
-        "mubarak ho", "shabash", "aisi hai ki", "itna clear"
+        "paisa barbad", "dimag kharab", "bakwas software", "bekaar update"
     ]
-
-    # These words ARE positive but OFTEN used sarcastically ONLY if there is a negative contrast
-    potential_sarcastic_positives = [
-        "wonderful", "masterpiece", "pure magic", "fantastic", "awesome", 
-        "excellent", "brilliant", "flawless", "great job", "so professional",
-        "zabardast", "kamaal", "wah bhai", "gajab", "maza aa gaya", "impressive"
-    ]
-    
-    # Ironic Adjectives/Adverbs
-    ironic_cues = ["classic", "typical", "standard", "expected", "standard", "official"]
 
     contrast_outcomes = [
-        "breaking the app", "breaking everything", "broke the app", "broke everything",
         "battery lives next to a socket", "zero speed", "blur", "hang",
         "crash", "gayab", "slow", "broken", "kidney bechni", "open nahi",
         "dies in 2 hours", "dies in 1 hour", "not what i wanted",
@@ -301,167 +275,127 @@ def detect_sarcasm_expert(text, v_compound, subjectivity):
         "unplug your life support", "ignore you", "one dollar", 
         "restart kar deta hai", "computer hang", "zero speed",
         "deleted all my data", "deleted my data", "brick", "paperweight",
-        "restarts every 10 min", "stopped working", "garbage", "fail", "not working",
-        "udd gaya", "khatam", "loot", "barbaad", "breaking", "error", "error again"
+        "restarts every 10 min", "stopped working", "garbage"
     ]
 
     # 2. Logic: Detection via Cultural & Contextual Irony
     
-    # Check for Strong Ironic Triggers
+    # Check for Ironic Triggers
     if any(p in text_lower for p in sarcasm_triggers):
         cues.append("ironic_trigger_phrase")
         tone = "sarcastic"
 
-    # Check for Contrast (Positive claim vs Negative Outcome) - This is THE hallmark of sarcasm
+    # Check for Contrast (Positive claim vs Negative Outcome)
     pos_claims = ["best", "great", "amazing", "love", "impressive", "clear", "fastest", "bright", "excellent", "superb"]
-    neg_outcomes = ["worse", "slower", "crash", "0%", "zero", "blur", "hang", "broke", "heater", "until they speak", "useless", "fail", "cheap", "waste"]
+    neg_outcomes = ["worse", "slower", "crash", "0%", "zero", "blur", "hang", "broke", "heater", "until they speak", "useless"]
     
-    # 1. Direct Contrast Check
-    has_pos = any(p in text_lower for p in pos_claims + potential_sarcastic_positives)
-    has_neg = any(n in text_lower for n in neg_outcomes + contrast_outcomes)
-    
-    # Advanced Contrast: If sentence ends with a strong positive after a negative body
-    ends_with_pos = any(text_lower.strip(' !.?').endswith(p) for p in ["brilliant", "awesome", "great", "perfect", "wonderful", "excellent"])
-
-    if (has_pos and has_neg) or (has_neg and ends_with_pos):
+    if any(p in text_lower for p in pos_claims) and any(n in text_lower for n in neg_outcomes):
         cues.append("positive_claim_negative_outcome_contrast")
-        tone = "sarcastic"
+        tone = "ironic/sarcastic"
 
-    # 2. Ironic Cues with Negativity
-    if any(i in text_lower for i in ironic_cues) and (has_neg or v_compound <= 0):
-        cues.append("ironic_adjective_with_negative_context")
-        tone = "sarcastic"
-
-    # 3. Strong Negative Outcome with Positive start
-    if any(c in text_lower for c in contrast_outcomes) and v_compound > 0.2:
-        cues.append("ironic_negative_outcome")
-        tone = "sarcastic"
-
-    # 4. Hinglish Sarcasm (Only if context is negative or highly subjective)
     if any(h in text_lower for h in hinglish_sarcasm):
-        # Hinglish sarcasm often needs a negative context or just the word itself (like 'ghanta')
-        if v_compound < 0.1 or has_neg or subjectivity > 0.5:
-            cues.append("hinglish_irony")
-            tone = "sarcastic"
+        cues.append("hinglish_irony")
+        tone = "sarcastic (Hinglish)"
+
+    if any(c in text_lower for c in contrast_outcomes):
+        cues.append("extreme_negative_outcome")
+        tone = "critical"
 
     # 3. VADER & TextBlob Synergy
     # If VADER is negative but TextBlob says it's emotional (subjective), it's likely sarcasm
     if v_compound < -0.1 and subjectivity > 0.6:
         cues.append("high_subjectivity_negative_context")
-        if tone == "sincere": tone = "critical"
+        if tone == "sincere": tone = "emotional_critique"
 
     is_sarcastic = len(cues) > 0
     return is_sarcastic, tone, cues
 
-# Professional Hinglish-to-English Sentiment Mapper
-# Helps BERT/RoBERTa (mostly English-trained) understand Hindi intent
-HINGLISH_MAP = {
-    "zabardast": "fantastic", "kamaal": "wonderful", "gajab": "amazing", "dhanyawad": "thank you",
-    "shukriya": "thank you", "paisa vasool": "worth it", "mast": "excellent", "maza": "fun",
-    "wah": "wow", "solid": "great", "killer": "awesome", "lajawab": "unmatchable",
-    "bakwas": "nonsense", "bekaar": "useless", "kachra": "garbage", "ghanta": "nonsense",
-    "loot": "fraud", "dhoka": "betrayal", "fadu": "awesome", "mehenga": "expensive",
-    "dimag kharab": "annoying", "majak": "joke", "mazak": "joke", "barbaad": "ruined",
-    "khatam": "finished", "bekar": "bad", "badhia": "good", "achha": "good", "achhe": "good",
-    "khush": "happy", "dukh": "sad", "pareshaan": "worried", "sahi": "right", "galat": "wrong"
-}
-
-def normalize_hinglish(text):
-    text_processed = text.lower()
-    # Replace multi-word expressions first
-    multi_word = {
-        "paisa vasool": "worth_it",
-        "maza aa gaya": "had_fun",
-        "dimag kharab": "annoying",
-        "baat hai": "thing"
-    }
-    for k, v in multi_word.items():
-        text_processed = text_processed.replace(k, v)
-        
-    # Simple word-for-word expansion
-    words = text_processed.split()
-    normalized = [HINGLISH_MAP.get(w, w) for w in words]
-    return " ".join(normalized)
-
 def analyze_sentiment_hybrid(text):
     text_lower = text.lower()
     clean = preprocess_text(text)
-    norm_text = normalize_hinglish(text)
     
-    # 1. Word-level NLU Analysis
+    # 1. Word-level NLU Analysis (Internal)
     word_nlu = analyze_word_level(text)
     
-    # 2. VADER Lexical Score (Rule-based)
+    # 2. VADER Score
     v_scores = vader_analyzer.polarity_scores(text)
     v_compound = v_scores['compound']
     
-    # 3. TextBlob Emotional Subjectivity
+    # 3. TextBlob for Subjectivity & Polarity
     blob = TextBlob(text)
     subjectivity = blob.sentiment.subjectivity
     blob_polarity = blob.sentiment.polarity
     
-    # 4. Deep Learning Analysis (Using Normalized Text for max accuracy)
-    bert_score = 0
-    bert_label = "Neutral"
-    confidence = 0
+    # Penalize neutral-sounding emotional text (often hidden sarcasm)
+    if subjectivity > 0.6 and abs(blob_polarity) < 0.2:
+        blob_polarity -= 0.3 
     
+    # 4. Deep Learning BERT Model (High Precision)
+    bert_score = 0
+    ml_label = None
+    confidence = 0
     if bert_analyzer:
         try:
-            # We run analysis on both original and normalized for best coverage
-            res = bert_analyzer(norm_text[:512])[0]
-            label_map = {"LABEL_0": -1, "LABEL_1": 0, "LABEL_2": 1, "NEGATIVE": -1, "NEUTRAL": 0, "POSITIVE": 1}
-            bert_score = label_map.get(res['label'], 0) * res['score']
-            bert_label = res['label']
-            confidence = float(res['score'])
-        except: pass
-
-    # 5. Sarcasm Experts (Pattern + Potential Transformer)
+            res = bert_analyzer(text)[0]
+            label = res['label'] 
+            score = res['score']
+            
+            if label == 'LABEL_2' or label == 'POSITIVE':
+                bert_score = score
+                ml_label = "Positive"
+            elif label == 'LABEL_0' or label == 'NEGATIVE':
+                bert_score = -score
+                ml_label = "Negative"
+            else:
+                bert_score = 0
+                ml_label = "Neutral"
+            confidence = float(score)
+        except:
+            bert_score = 0
+    # Fallback/Synergy with ML Pipeline
+    if pipeline:
+        try:
+            probs = pipeline.predict_proba([clean])[0]
+            ml_res = pipeline.predict([clean])[0]
+            confidence = max(confidence, float(max(probs)))
+            if bert_score == 0:
+                bert_score = [-1, 0, 1][ml_res]
+                ml_label = ["Negative", "Neutral", "Positive"][ml_res]
+        except:
+            pass
+    
+    # 5. Sarcasm detection
     dl_sarcastic = False
     if sarcasm_analyzer:
         try:
-            s_res = sarcasm_analyzer(text[:512])[0]
-            if s_res['label'] in ['LABEL_1', 'Sarcastic']:
+            s_res = sarcasm_analyzer(text)[0]
+            if s_res['label'] == 'LABEL_1':
                 dl_sarcastic = True
+                confidence = max(confidence, s_res['score'])
         except: pass
 
     is_sarcastic, tone, cues = detect_sarcasm_expert(text, v_compound, subjectivity)
     final_is_sarcastic = dl_sarcastic or is_sarcastic
-    if dl_sarcastic: cues.append("deep_learning_sarcasm_confirmed")
+    if dl_sarcastic: cues.append("transformers_sarcasm_detection")
 
-    # 6. ENTERPRISE SCORING ENGINE (Conflict-Resolution Logic)
-    # The brain of the project: Weighing AI against Rules
+    # 6. Hybrid Score Calculation
+    base_score = (0.35 * v_compound) + (0.25 * blob_polarity) + (0.4 * bert_score)
+    final_sentiment = "neutral"
     
-    # If Sarcasm is detected, we FORCE a negative/critical score
     if final_is_sarcastic:
         final_sentiment = "Negative"
         tone = "sarcastic"
-        score = -0.75
+        base_score = min(base_score, -0.65)
+    elif "extreme_negative_outcome" in cues:
+        final_sentiment = "Negative"
+        tone = "critical"
+        base_score = min(base_score, -0.75)
     else:
-        # Hybrid weights (Adjusted for Market Precision)
-        # BERT gets most weight (45%), VADER (35%), TextBlob (20%)
-        # Note: If BERT is missing, weights auto-shift to rules
-        if not bert_analyzer:
-            # Re-running VADER on normalized text for internal score consistency
-            v_norm = vader_analyzer.polarity_scores(norm_text)['compound']
-            score = (0.75 * v_norm) + (0.25 * blob_polarity)
-        else:
-            score = (0.45 * bert_score) + (0.35 * v_compound) + (0.20 * blob_polarity)
-
-        # Dynamic Classification
-        if score > 0.18: final_sentiment = "Positive"
-        elif score < -0.18: final_sentiment = "Negative"
+        if base_score > 0.15: final_sentiment = "Positive"
+        elif base_score < -0.15: final_sentiment = "Negative"
         else: final_sentiment = "Neutral"
 
-    # Emotional Archetype Calculation
-    archetype = "Information"
-    if subjectivity > 0.6:
-        if score > 0.5: archetype = "Admiration"
-        elif score < -0.5: archetype = "Rage/Critique"
-        else: archetype = "Opinion"
-    elif abs(score) < 0.2:
-        archetype = "Statement"
-    
-    emoji_map = {"Positive": "Positive 😊", "Negative": "Negative 😡", "Neutral": "Neutral 😐"}
+    emoji_map = {"Positive": "Positive 😊", "Negative": "Negative 😡", "Neutral": "Neutral 😐", "Mixed": "Mixed 🧐"}
     display_sentiment = emoji_map.get(final_sentiment, final_sentiment)
     if final_is_sarcastic: display_sentiment += " (Sarcastic 😏)"
 
@@ -470,12 +404,11 @@ def analyze_sentiment_hybrid(text):
         "display_sentiment": display_sentiment,
         "tone": tone,
         "sarcasm": final_is_sarcastic,
-        "archetype": archetype,
-        "confidence": round(confidence if confidence > 0 else abs(score), 2),
-        "market_score": round(score, 3),
+        "hidden_sentiment": "negative" if final_is_sarcastic else final_sentiment.lower(),
         "cues": cues,
-        "word_level": word_nlu[:10], # Top 10 words
-        "normalized_context": norm_text if norm_text != text_lower else None
+        "confidence": confidence,
+        "industry_score": round(base_score, 2),
+        "word_analysis": word_nlu
     }
 
 @app.route("/")
@@ -501,7 +434,7 @@ def home():
                 <button type="submit">Analyze Sentiment</button>
             </form>
             <hr>
-           <p><small>Endpoints: /api/analyze/text | /api/analyze/url</small></p>
+            <p><small>Endpoints: /api/analyze/text | /api/analyze/url</small></p>
         </body>
     </html>
     """
@@ -528,17 +461,9 @@ def analyze_text():
             "sentiment": overall_res["display_sentiment"],
             "tone": overall_res["tone"],
             "is_sarcastic": overall_res["sarcasm"],
-            "archetype": overall_res["archetype"],
+            "cues": overall_res["cues"],
             "confidence": f"{overall_res['confidence']:.2%}" if isinstance(overall_res["confidence"], float) else overall_res["confidence"],
-            "market_score": overall_res["market_score"],
-            "cues": overall_res["cues"]
-        }
-        
-        # Metadata for Market-Readiness
-        metadata = {
-            "processed_context": overall_res["normalized_context"],
-            "word_analysis": overall_res["word_level"],
-            "engine": "Dual-Transformer + Expert Rules (SOTA)" if bert_analyzer else "Expert Rules (Lightweight)"
+            "industry_score": overall_res["industry_score"]
         }
 
         # Integrate User-Requested Aspect Sarcasm Logic
@@ -578,8 +503,7 @@ def analyze_text():
         return jsonify({
             "status": "success",
             "sentence": sentence,
-            "analysis": results,
-            "intelligence_metadata": metadata
+            "analysis": results
         })
     except Exception as e:
         import traceback
